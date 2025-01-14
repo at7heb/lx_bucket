@@ -6,10 +6,10 @@ defmodule LxBucket do
   It has a minimal interface: new/2 and drip_in/1
 
   new/2 creates a bucket with
-  * a given capacity (integer, default 10)
-  * the leak rate (float, Hz, default 1)
+  * a given capacity (floa, default 10.0)
+  * the leak rate (float, Hz, default 1.0)
 
-  drip_in/1 takes the LxBucket struct returned by new/2 and drips 1 unit volume in.
+  drip_in/1 takes the LxBucket struct returned by new/2 and drips 1.0 unit volume in.
   If the bucket is below capacity, {:ok, new_lx_bucket} is returned.
   If the bucket overflows, {:overflow, new_lx_bucket} is returned.
 
@@ -19,8 +19,9 @@ defmodule LxBucket do
   Maybe the I2C bus is long and subject to EMI. Every failing interaction generates a call to
   LxBucket.drip_in. Your code would probably retry the I2C interaction after a timeout.
 
-  the :overflow return form LxBucket.drip_in/1 can be used to detect faults, with whatever recovery
-  action your application requires.
+  the :overflow return from LxBucket.drip_in/1 can be used to detect anomalies.
+  If your application classifies anomalies as faults, it can take whatever recovery
+  action is required when the bucket overflows.
 
   LxBucket is by no means to limited to hardware anomaly detection. LxBuckets could also monitor
   interactions with external software servers. RPC faults could generate a call to LxBucket.drip_in/1,
@@ -39,7 +40,9 @@ defmodule LxBucket do
   If compatible with safety regulations, LxBucket could be incrememnted whenever a new floor button
   in an elevator is pressed. So an immature passenger who presses each floor button would be prevented
   from making the elevator stop at each floor of a 25 story building. The bucket capacity could be set
-  to a fraction of the elevator car capacity. This would, of course, require considerable user
+  to a fraction of the elevator car capacity.
+
+  This use, as well as random pushbotton press recover would require considerable user
   experience engineering.
 
   LxBucket is a very tiny implmentation with no call backs, no GenServer, no timers -- nothing
@@ -47,13 +50,19 @@ defmodule LxBucket do
   representing the capacity, and a time representing the time when the bucket fill level was correct.
 
   At every call to LxBucket/drip_in/1, the leak rate, saved time, and current time are used to calculate
-  how much the bucket has drained, and then the drip is added. the new fill level and valid time are
-  updated. if the resulting
+  how much the bucket has drained, and then the drip is added. the new fill level and last drip time are
+  updated. If the resulting
   fill level exceeds the capacity, then :overflow is returned, otherwise :ok is returned, along with
   the new LxBucket struct.
 
-  To reduce the probability of clock adjustments producing randome behavior, System.monotonic_time(:second)
-  is used in LxBucket
+  To reduce the probability of clock adjustments producing randome behavior, System.monotonic_time(:millisecond)
+  is used in LxBucket.
+
+  N.B. Using LxBucket for admission control is not advised. It would work
+  if work that arrives at too high a rate can be discarded. If such work
+  must instead  be queued, LxBucket does not suffice. A polling interface,
+  with a function such as is_overflowing?/1, could be implmented, but it
+  is likely to be more efficient to use a timer-based leaky bucket.
   """
 
   @doc """
