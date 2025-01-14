@@ -79,14 +79,29 @@ defmodule LxBucket do
 
   defstruct level: +0.0, capacity: 0.0, leak_rate: 1.0, last_drip_time: 0
 
+  @doc """
+  Create a new LxBucket{} with given capacity and leak rate
+  ## Examples
+
+        iex> %LxBucket{capacity: 50.0, leak_rate: 0.5, level: +0.0} = LxBucket.new(50.0, 0.5)
+
+  """
   def new(capacity \\ 10.0, rate \\ 1.0)
-      when is_float(capacity) and is_float(rate) and capacity > 1.0 and rate > 0,
+      when is_float(capacity) and is_float(rate) and capacity > 0.0 and rate > 0,
       do: %LxBucket{
         capacity: capacity,
         leak_rate: rate,
         last_drip_time: System.monotonic_time(:millisecond)
       }
 
+  @doc """
+  drip volume = 1 into bucket, return {:ok, bucket} or {:overflow, bucket}
+  ## Examples
+
+          iex> {:ok, _} = LxBucket.new() |> LxBucket.drip_in()
+
+          iex> {:overflow, _} = (LxBucket.new(1.0) |> LxBucket.drip_in() |> elem(1) |> LxBucket.drip_in())
+  """
   def drip_in(%LxBucket{} = bucket) do
     now = System.monotonic_time(:millisecond)
     interval = now - bucket.last_drip_time
