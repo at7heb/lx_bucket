@@ -59,8 +59,20 @@ defmodule LxBucketTest do
     assert result == :ok
     # 5 seconds
     Process.sleep(5)
-    {:ok, bucket} = LxBucket.drip_in(bucket) |> dbg
+    {:ok, bucket} = LxBucket.drip_in(bucket)
     assert bucket.level > 3.9
     assert bucket.level < 5.1
+  end
+
+  test "performance; never fails" do
+    # b = LxBucket.new()
+    # Benchee.run(%{success: fn -> LxBucket.drip_in(b) end})
+
+    # {:overflow, b} =
+    #   Enum.reduce(1..11, {:unk, b}, fn _index, {_status, bucket} -> LxBucket.drip_in(bucket) end)
+
+    # Benchee.run(%{overflow: fn -> LxBucket.drip_in(b) end})
+    # # ensure success
+    assert 1 == 1
   end
 end
