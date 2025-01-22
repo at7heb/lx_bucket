@@ -2,10 +2,6 @@ defmodule LxBucketTest do
   use ExUnit.Case
   doctest LxBucket
 
-  test "greets the world" do
-    assert LxBucket.hello() == :world
-  end
-
   test "can create leaky bucket" do
     assert %LxBucket{leak_rate: 1.0, capacity: 10.0, level: +0.0} = LxBucket.new()
   end

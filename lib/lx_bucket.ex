@@ -68,6 +68,28 @@ defmodule LxBucket do
   """
 
   @doc """
+  Create a new LxBucket{} with the same capacity and leak rate as the old bucket
+  ## Examples
+
+        iex> old_bucket = (LxBucket.new(50.0, 5.0) |> LxBucket.drip_in!());
+        new_bucket = LxBucket.new(old_bucket);
+        new_bucket |> dbg;
+        new_bucket.level == 0.0;
+
+  """
+
+  # %LxBucket{level: 1.0} = old_bucket
+
+  def new(%LxBucket{capacity: capacity, leak_rate: rate} = _old_bucket)
+      when is_float(capacity) and is_float(rate) and capacity > 0.0 and rate > 0,
+      do: %LxBucket{
+        capacity: capacity,
+        leak_rate: rate,
+        level: +0.0,
+        last_drip_time: System.monotonic_time(:millisecond)
+      }
+
+  @doc """
   Create a new LxBucket{} with given capacity and leak rate
   ## Examples
 
@@ -76,6 +98,7 @@ defmodule LxBucket do
   """
 
   def new(capacity \\ 10.0, rate \\ 1.0)
+      # def new(capacity, rate)
       when is_float(capacity) and is_float(rate) and capacity > 0.0 and rate > 0,
       do: %LxBucket{
         capacity: capacity,
@@ -99,5 +122,24 @@ defmodule LxBucket do
     new_level = max(bucket.level - drain_amount + 1.0, 1.0)
     new_bucket = %{bucket | level: new_level, last_drip_time: now}
     {if(new_level <= bucket.capacity, do: :ok, else: :overflow), new_bucket}
+  end
+
+  @doc """
+  drip volume = 1 into bucket, returns the updated bucket if no overflow
+  If the bucket has overflowed, then this raises a RuntimeError with the
+  "Leaky Bucket Overflow"
+  message
+  ## Examples
+
+          iex> %LxBucket{} = LxBucket.new(1.1) |> LxBucket.drip_in!()
+
+          # Raise RuntimeError!
+
+          iex> (LxBucket.new(0.1) |> LxBucket.drip_in!())
+  """
+
+  def drip_in!(%LxBucket{} = bucket) do
+    {status, new_bucket} = drip_in(bucket)
+    if status == :overflow, do: raise("Leaky Bucket Overflow"), else: new_bucket
   end
 end
