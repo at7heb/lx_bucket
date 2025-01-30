@@ -71,4 +71,11 @@ defmodule LxBucketTest do
     # # ensure success
     assert 1 == 1
   end
+
+  test "create leaky bucket from an old one" do
+    old_bucket = LxBucket.new(50.0, 5.0) |> LxBucket.drip_in!()
+    new_bucket = LxBucket.new(old_bucket)
+    assert new_bucket.level == 0.0
+    assert old_bucket.level > 0.0
+  end
 end
